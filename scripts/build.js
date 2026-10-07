@@ -94,13 +94,17 @@ async function bundleWineRuntime() {
     return;
   }
   const tarball = path.join(TEMP_DIR, 'wine-bundle.tar.xz');
+  const cacheSource = tarball + '.source';
+  const cached = fs.existsSync(tarball) && fs.existsSync(cacheSource) &&
+    fs.readFileSync(cacheSource, 'utf8').trim() === WINE_DOWNLOAD_URL;
   try {
-    if (!fs.existsSync(tarball)) {
+    if (!cached) {
       logger.info('Downloading portable wine for the Full variant...');
       try {
         execSync(`curl -L --fail -o "${tarball}" "${WINE_DOWNLOAD_URL}"`, {
           cwd: BASE_DIR, stdio: 'inherit'
         });
+        fs.writeFileSync(cacheSource, WINE_DOWNLOAD_URL + '\n');
       } catch(err) {
         // remove partial downloads
         if (fs.existsSync(tarball)) {
