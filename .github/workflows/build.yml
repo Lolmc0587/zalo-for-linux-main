@@ -75,7 +75,7 @@ jobs:
             runner: ubuntu-24.04-arm
             sys_deps: >
               sudo apt update &&
-              sudo apt install -y build-essential liblzma-dev p7zip-full gcc g++ clang libclang-dev llvm libc6-dev libx11-dev libxcb1-dev libxext-dev
+              sudo apt install -y build-essential liblzma-dev p7zip-full gcc-mingw-w64-i686 gcc g++ clang libclang-dev llvm libc6-dev libx11-dev libxcb1-dev libxext-dev
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
