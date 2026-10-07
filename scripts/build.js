@@ -32,26 +32,19 @@ async function main() {
     // silently bloat the standard variants — start clean; Phase 3 re-bundles.
     fs.rmSync(path.join(APP_DIR, 'native', 'wine-runtime'), { recursive: true, force: true });
 
-    // Check architecture for Full variants
-    const isArm64 = process.arch === 'arm64' || process.arch === 'aarch64';
-
     // Phase 1: Build original Zalo
     logger.step('PHASE 1: Building Zalo (Original)');
     await build('(Original)', '');
 
     // Phase 1.5: Full variant of the original (no ZaDark) — wine bundled.
-    // This is only built on x86_64, because zcall is not supported on aarch64.
-    if (!isArm64) {
-      logger.step('PHASE 1.5: Building Zalo (Full — wine bundled, no ZaDark)');
-      await bundleWineRuntime();
-      await build('(Full — wine bundled)', '-PlainFull');
-      // Remove the runtime again — the standard variants must not contain it,
-      // and a leftover from a previous run would silently bloat them (and the
-      // next Full build) to the Full size.
-      fs.rmSync(path.join(APP_DIR, 'native', 'wine-runtime'), { recursive: true, force: true });
-    } else {
-      logger.info('PHASE 1.5: Skipping Full variant build on aa64, zcall is not supported on this architecture');
-    }
+
+    logger.step('PHASE 1.5: Building Zalo (Full — wine bundled, no ZaDark)');
+    await bundleWineRuntime();
+    await build('(Full — wine bundled)', '-PlainFull');
+    // Remove the runtime again — the standard variants must not contain it,
+    // and a leftover from a previous run would silently bloat them (and the
+    // next Full build) to the Full size.
+    fs.rmSync(path.join(APP_DIR, 'native', 'wine-runtime'), { recursive: true, force: true });
 
     // Phase 2: Apply ZaDark integration and build final product
     logger.step('PHASE 2: Building Zalo (with ZaDark)');
@@ -62,15 +55,10 @@ async function main() {
 
     // Phase 3: Full variant of the ZaDark build — wine bundled, so the call
     // feature works out of the box with no first-run download.
-    if (!isArm64) {
-      logger.step('PHASE 3: Building Zalo (Full — wine bundled, with ZaDark)');
-      await bundleWineRuntime();
-      await build('(Full — wine bundled)', '-Full');
-      fs.rmSync(path.join(APP_DIR, 'native', 'wine-runtime'), { recursive: true, force: true });
-    } else {
-      logger.info('PHASE 3: Skipping Full with ZaDark variant build on aa64');
-    }
-
+    logger.step('PHASE 3: Building Zalo (Full — wine bundled, with ZaDark)');
+    await bundleWineRuntime();
+    await build('(Full — wine bundled)', '-Full');
+    fs.rmSync(path.join(APP_DIR, 'native', 'wine-runtime'), { recursive: true, force: true });
     // Final summary
     logger.step('BUILD SUMMARY');
     if (builtFiles.length > 0) {
@@ -86,17 +74,16 @@ async function main() {
   }
 }
 
-// Keep in sync with WINE_DOWNLOAD_URL in plugins/zcall-bridge/index.js
-const WINE_DOWNLOAD_URL =
+let WINE_DOWNLOAD_URL =
   'https://github.com/Kron4ek/Wine-Builds/releases/download/11.14/wine-11.14-amd64.tar.xz';
+// Keep in sync with WINE_DOWNLOAD_URL in plugins/zcall-bridge/index.js
+if (process.arch === 'arm64' || process.arch === 'aarch64') {
+  WINE_DOWNLOAD_URL =
+    'https://github.com/Lolmc0587/Wine-Builds/releases/download/master/wine-11.18-arm64-fex.tar.xz';
+}
 
 async function bundleWineRuntime() {
   // we will skip the wine bundle if on aarch64 because zcall is currently not supported on it
-  if (process.arch === 'arm64' || process.arch === 'aarch64') {
-    logger.info('skipping wine bundle on aa64, zcall is not supported on this architecture');
-    return;
-  }
-
   if (!fs.existsSync(TEMP_DIR)) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
   }
@@ -215,7 +202,7 @@ async function build(buildName = '', outputSuffix = '') {
       commit: commitHash,
       buildDate: new Date().toISOString()
     };
-    
+
     const buildInfoPath = path.join(APP_DIR, 'pc-dist', 'build-info.json');
     if (fs.existsSync(path.join(APP_DIR, 'pc-dist'))) {
       fs.writeFileSync(buildInfoPath, JSON.stringify(buildInfo, null, 2), 'utf8');
@@ -261,10 +248,10 @@ async function build(buildName = '', outputSuffix = '') {
         } catch (error) {
           logger.warn('Could not calculate SHA256');
         }
-        
+
         logger.success(`Built ${appImageName} (${sizeStr})`);
         logger.dim(`SHA256: ${fileSha256}`);
-        
+
         builtFiles.push({
           type: outputSuffix === '-Full' ? '🍷 Full (ZaDark)' : outputSuffix === '-PlainFull' ? '🍷 Full' : outputSuffix === '-ZaDark' ? '🎨 ZaDark' : '📦 Original',
           name: appImageName,

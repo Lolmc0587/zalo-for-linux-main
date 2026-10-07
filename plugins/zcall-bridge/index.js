@@ -50,8 +50,13 @@ const https = require('https');
 // it; wine 8.6 is lighter (54MB) but its msvcp140/ucrtbase lack
 // _Throw_C_error, which crashes ZaloCall when the video pipeline hits an
 // error (e.g. codec/format negotiation).
-const WINE_DOWNLOAD_URL =
+let WINE_DOWNLOAD_URL =
   'https://github.com/Kron4ek/Wine-Builds/releases/download/11.14/wine-11.14-amd64.tar.xz';
+// Keep in sync with WINE_DOWNLOAD_URL in plugins/zcall-bridge/index.js
+if (process.arch === 'arm64' || process.arch === 'aarch64') {
+  WINE_DOWNLOAD_URL =
+    'https://github.com/Lolmc0587/Wine-Builds/releases/download/master/wine-11.18-arm64-fex.tar.xz';
+}
 const RUNTIME_DIRNAME = 'zcall-wine-runtime';
 const CONFIG_FILENAME = 'zcall-config.json';
 // Last successful validateWine() (writeConfig replaces the whole config file,

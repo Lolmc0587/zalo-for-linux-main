@@ -27,12 +27,6 @@ const TEMP_DIR = path.join(ROOT, 'temp');
 
 async function main() {
 
-  const currentArch = process.arch || os.arch();
-  if (currentArch === 'arm64' || currentArch === 'aarch64') {
-    logger.warn(`Skipping zcall-bridge setup: aarch64 is not supported for 32-bit Wine runtime.`);
-    return;
-  }
-
   // -------------------------------------------------------------------------
   // 1. plugins/capture from the Windows installer
   // -------------------------------------------------------------------------
